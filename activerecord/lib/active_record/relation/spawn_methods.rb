@@ -22,31 +22,13 @@ module ActiveRecord
         end
       end
 
-      (Relation::MULTI_VALUE_METHODS - [:joins, :where, :order]).each do |method|
+      (Relation::MULTI_VALUE_METHODS - [:joins, :order]).each do |method|
         value = r.send(:"#{method}_values")
         merged_relation.send(:"#{method}_values=", merged_relation.send(:"#{method}_values") + value) if value.present?
       end
 
       merged_relation.joins_values += r.joins_values
 
-      merged_wheres = @where_values + r.where_values
-
-      unless @where_values.empty?
-        # Remove duplicates, last one wins.
-        seen = Hash.new { |h,table| h[table] = {} }
-        merged_wheres = merged_wheres.reverse.reject { |w|
-          nuke = false
-          if w.respond_to?(:operator) && w.operator == :==
-            name              = w.left.name
-            table             = w.left.relation.name
-            nuke              = seen[table][name]
-            seen[table][name] = true
-          end
-          nuke
-        }.reverse
-      end
-
-      merged_relation.where_values = merged_wheres
 
       (Relation::SINGLE_VALUE_METHODS - [:lock, :create_with, :reordering]).each do |method|
         value = r.send(:"#{method}_value")
