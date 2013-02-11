@@ -515,6 +515,8 @@ class TestRoutingMapper < ActionDispatch::IntegrationTest
         match '/sculptors', :to => 'italians#sculptors'
         match '/painters/:painter', :to => 'italians#painters', :constraints => {:painter => /michelangelo/}
       end
+
+      get 'search' => 'search'
     end
   end
 
@@ -885,6 +887,15 @@ class TestRoutingMapper < ActionDispatch::IntegrationTest
 
     # verify that the options passed in have not changed from the original ones
     assert_equal original_options, options
+  end
+
+  def test_url_for_does_not_modify_controller
+    controller = '/projects'
+    options = {:controller => controller, :action => 'status', :only_path => true}
+    url = url_for(options)
+
+    assert_equal '/projects/status', url
+    assert_equal '/projects', controller
   end
 
   # tests the arguments modification free version of define_hash_access
@@ -2466,6 +2477,11 @@ class TestRoutingMapper < ActionDispatch::IntegrationTest
     get "/posts/1/admin"
     assert_equal "admin/index#index", @response.body
     assert_equal "/posts/1/admin", post_admin_root_path(:post_id => '1')
+  end
+
+  def test_action_from_path_is_not_frozen
+    get '/search'
+    assert !@request.params[:action].frozen?
   end
 
 private

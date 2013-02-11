@@ -451,7 +451,7 @@ module ActionDispatch
                 # we must actually delete prefix segment keys to avoid passing them to next url_for
                 _route.segment_keys.each { |k| options.delete(k) }
                 prefix = _routes.url_helpers.send("#{name}_path", prefix_options)
-                prefix = '' if prefix == '/'
+                prefix = prefix.gsub(%r{/\z}, '')
                 prefix
               end
             end
@@ -1288,9 +1288,10 @@ module ActionDispatch
 
         def add_route(action, options) # :nodoc:
           path = path_for_action(action, options.delete(:path))
+          action = action.to_s.dup
 
-          if action.to_s =~ /^[\w\/]+$/
-            options[:action] ||= action unless action.to_s.include?("/")
+          if action =~ /^[\w\/]+$/
+            options[:action] ||= action unless action.include?("/")
           else
             action = nil
           end
