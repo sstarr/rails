@@ -17,29 +17,30 @@ module ActiveRecord
           if method == :includes
             merged_relation = merged_relation.includes(value)
           else
-            merged_relation.send(:"#{method}_values=", value)
+            merge_relation_method(merged_relation, method, value)
           end
         end
       end
 
       (Relation::MULTI_VALUE_METHODS - [:joins, :where, :order]).each do |method|
         value = r.send(:"#{method}_values")
-        merged_relation.send(:"#{method}_values=", merged_relation.send(:"#{method}_values") + value) if value.present?
+        merge_relation_method(merged_relation, method, value) if value.present?
       end
 
-      merged_relation.joins_values += r.joins_values
+      merge_joins(merged_relation, r)
 
 
       merged_wheres = @where_values + r.where_values
       dont_nuke_rightmost = r.where_values.size
 
       if options[:allow_override] and not @where_values.empty?
-        # Remove duplicates, last one wins.
+        # Remove duplicate ARel attributes. Last one wins.
         seen = Hash.new { |h,table| h[table] = {} }
         index = 0
         merged_wheres = merged_wheres.reverse.reject { |w|
           nuke = false
-          if w.respond_to?(:operator) && w.operator == :==
+          if w.respond_to?(:operator) && w.operator == :== &&
+            w.left.respond_to?(:relation)
             name              = w.left.name
             table             = w.left.relation.name
             nuke              = seen[table][name] && index >= dont_nuke_rightmost
@@ -148,5 +149,36 @@ module ActiveRecord
       relation
     end
 
+    private
+
+      def merge_joins(relation, other)
+        values = other.joins_values
+        return if values.blank?
+
+        if other.klass >= relation.klass
+          relation.joins_values += values
+        else
+          joins_dependency, rest = values.partition do |join|
+            case join
+            when Hash, Symbol, Array
+              true
+            else
+              false
+            end
+          end
+
+          join_dependency = ActiveRecord::Associations::JoinDependency.new(
+            other.klass,
+            joins_dependency,
+            []
+          )
+
+          relation.joins_values += join_dependency.join_associations + rest
+        end
+      end
+
+      def merge_relation_method(relation, method, value)
+        relation.send(:"#{method}_values=", relation.send(:"#{method}_values") + value)
+      end
   end
 end
