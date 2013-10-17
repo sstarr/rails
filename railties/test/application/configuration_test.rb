@@ -472,6 +472,7 @@ module ApplicationTests
     test "config.action_controller.wrap_parameters is set in ActionController::Base" do
       app_file 'config/initializers/wrap_parameters.rb', <<-RUBY
         ActionController::Base.wrap_parameters :format => [:json]
+        ActionDispatch::ParamsParser::DEFAULT_PARSERS.merge!(Mime::JSON => :json)
       RUBY
 
       app_file 'app/models/post.rb', <<-RUBY
