@@ -1,44 +1,12 @@
-gem 'rdoc', '>= 2.5.10'
-require 'rdoc'
-
 require 'rake'
-require 'rdoc/task'
 
-$:.unshift File.expand_path('..', __FILE__)
-require "tasks/release"
-
-desc "Build gem files for all projects"
-task :build => "all:build"
-
-desc "Release all gems to gemcutter and create a tag"
-task :release => "all:release"
-
-# RDoc skips some files in the Rails tree due to its binary? predicate. This is a quick
-# hack for edge docs, until we decide which is the correct way to address this issue.
-# If not fixed in RDoc itself, via an option or something, we should probably move this
-# to railties and use it also in doc:rails.
-def hijack_rdoc!
-  require "rdoc/parser"
-  class << RDoc::Parser
-    def binary?(file)
-      s = File.read(file, 1024) or return false
-
-      if s[0, 2] == Marshal.dump('')[0, 2] then
-        true
-      elsif file =~ /erb\.rb$/ then
-        false
-      elsif s.index("\x00") then # ORIGINAL is s.scan(/<%|%>/).length >= 4 || s.index("\x00")
-        true
-      elsif 0.respond_to? :fdiv then
-        s.count("^ -~\t\r\n").fdiv(s.size) > 0.3
-      else # HACK 1.8.6
-        (s.count("^ -~\t\r\n").to_f / s.size) > 0.3
-      end
-    end
-  end
-end
+env = %(PKG_BUILD="#{ENV['PKG_BUILD']}") if ENV['PKG_BUILD']
 
 PROJECTS = %w(activesupport activemodel actionpack actionmailer activeresource activerecord railties)
+
+Dir["#{File.dirname(__FILE__)}/*/lib/*/version.rb"].each do |version_path|
+  require version_path
+end
 
 desc 'Run all tests by default'
 task :default => %w(test test:isolated)
@@ -48,114 +16,142 @@ task :default => %w(test test:isolated)
   task task_name do
     errors = []
     PROJECTS.each do |project|
+      warn 'When running tests for Rails LTS, prefer running the "railslts:test" task.'
       system(%(cd #{project} && #{$0} #{task_name})) || errors << project
     end
     fail("Errors in #{errors.join(', ')}") unless errors.empty?
   end
 end
 
-desc "Smoke-test all projects"
-task :smoke do
-  (PROJECTS - %w(activerecord)).each do |project|
-    system %(cd #{project} && #{$0} test:isolated)
-  end
-  system %(cd activerecord && #{$0} sqlite3:isolated_test)
-end
+namespace :railslts do
 
-desc "Install gems for all projects."
-task :install => :gem do
-  version = File.read("RAILS_VERSION").strip
-  (PROJECTS - ["railties"]).each do |project|
-    puts "INSTALLING #{project}"
-    system("gem install #{project}/pkg/#{project}-#{version}.gem --no-ri --no-rdoc")
-  end
-  system("gem install railties/pkg/railties-#{version}.gem --no-ri --no-rdoc")
-  system("gem install pkg/rails-#{version}.gem --no-ri --no-rdoc")
-end
+  desc 'Run tests for Rails LTS compatibility'
+  task :test do
 
-desc "Generate documentation for the Rails framework"
-RDoc::Task.new do |rdoc|
-  hijack_rdoc!
+    puts '', "\033[44m#{'activesupport'}\033[0m", ''
+    system('cd activesupport && rake test') or raise 'failed'
 
-  rdoc.rdoc_dir = 'doc/rdoc'
-  rdoc.title    = "Ruby on Rails Documentation"
+    puts '', "\033[44m#{'actionmailer'}\033[0m", ''
+    system('cd actionmailer && rake test') or raise 'failed'
 
-  rdoc.options << '-f' << 'horo'
-  rdoc.options << '-c' << 'utf-8'
-  rdoc.options << '-m' << 'README.rdoc'
+    puts '', "\033[44m#{'actionpack'}\033[0m", ''
+    system('cd actionpack && rake test') or raise 'failed'
 
-  rdoc.rdoc_files.include('README.rdoc')
+    puts '', "\033[44m#{'activemodel'}\033[0m", ''
+    system('cd activemodel && rake test') or raise 'failed'
 
-  rdoc.rdoc_files.include('railties/CHANGELOG')
-  rdoc.rdoc_files.include('railties/MIT-LICENSE')
-  rdoc.rdoc_files.include('railties/README.rdoc')
-  rdoc.rdoc_files.include('railties/lib/**/*.rb')
-  rdoc.rdoc_files.exclude('railties/lib/rails/generators/**/templates/*')
+    puts '', "\033[44m#{'activerecord (mysql)'}\033[0m", ''
+    system('cd activerecord && rake test_mysql') or raise 'failed'
 
-  rdoc.rdoc_files.include('activerecord/README.rdoc')
-  rdoc.rdoc_files.include('activerecord/CHANGELOG')
-  rdoc.rdoc_files.include('activerecord/lib/active_record/**/*.rb')
-  rdoc.rdoc_files.exclude('activerecord/lib/active_record/vendor/*')
+    puts '', "\033[44m#{'activerecord (sqlite3)'}\033[0m", ''
+    system('cd activerecord && rake test_sqlite3') or raise 'failed'
 
-  rdoc.rdoc_files.include('activeresource/README.rdoc')
-  rdoc.rdoc_files.include('activeresource/CHANGELOG')
-  rdoc.rdoc_files.include('activeresource/lib/active_resource.rb')
-  rdoc.rdoc_files.include('activeresource/lib/active_resource/*')
+    puts '', "\033[44m#{'activerecord (postgres)'}\033[0m", ''
+    system('cd activerecord && rake test_postgresql') or raise 'failed'
 
-  rdoc.rdoc_files.include('actionpack/README.rdoc')
-  rdoc.rdoc_files.include('actionpack/CHANGELOG')
-  rdoc.rdoc_files.include('actionpack/lib/abstract_controller/**/*.rb')
-  rdoc.rdoc_files.include('actionpack/lib/action_controller/**/*.rb')
-  rdoc.rdoc_files.include('actionpack/lib/action_dispatch/**/*.rb')
-  rdoc.rdoc_files.include('actionpack/lib/action_view/**/*.rb')
-  rdoc.rdoc_files.exclude('actionpack/lib/action_controller/vendor/*')
+    puts '', "\033[44m#{'activeresource'}\033[0m", ''
+    system('cd activeresource && rake test') or raise 'failed'
 
-  rdoc.rdoc_files.include('actionmailer/README.rdoc')
-  rdoc.rdoc_files.include('actionmailer/CHANGELOG')
-  rdoc.rdoc_files.include('actionmailer/lib/action_mailer/base.rb')
-  rdoc.rdoc_files.exclude('actionmailer/lib/action_mailer/vendor/*')
+    puts '', "\033[44m#{'railties'}\033[0m", ''
+    system('cd railties && rake test') or raise 'failed'
 
-  rdoc.rdoc_files.include('activesupport/README.rdoc')
-  rdoc.rdoc_files.include('activesupport/CHANGELOG')
-  rdoc.rdoc_files.include('activesupport/lib/active_support/**/*.rb')
-  rdoc.rdoc_files.exclude('activesupport/lib/active_support/vendor/*')
-
-  rdoc.rdoc_files.include('activemodel/README.rdoc')
-  rdoc.rdoc_files.include('activemodel/CHANGELOG')
-  rdoc.rdoc_files.include('activemodel/lib/active_model/**/*.rb')
-end
-
-# Enhance rdoc task to copy referenced images also
-task :rdoc do
-  FileUtils.mkdir_p "doc/rdoc/files/examples/"
-  FileUtils.copy "activerecord/examples/associations.png", "doc/rdoc/files/examples/associations.png"
-end
-
-desc 'Bump all versions to match version.rb'
-task :update_versions do
-  require File.dirname(__FILE__) + "/version"
-
-  File.open("RAILS_VERSION", "w") do |f|
-    f.write Rails::VERSION::STRING + "\n"
   end
 
-  constants = {
-    "activesupport"   => "ActiveSupport",
-    "activemodel"     => "ActiveModel",
-    "actionpack"      => "ActionPack",
-    "actionmailer"    => "ActionMailer",
-    "activeresource"  => "ActiveResource",
-    "activerecord"    => "ActiveRecord",
-    "railties"        => "Rails"
-  }
-
-  version_file = File.read("version.rb")
-
-  PROJECTS.each do |project|
-    Dir["#{project}/lib/*/version.rb"].each do |file|
-      File.open(file, "w") do |f|
-        f.write version_file.gsub(/Rails/, constants[project])
-      end
+  task :clean_gems do
+    PROJECTS.each do |project|
+      pkg_folder = "#{project}/pkg"
+      puts "Emptying packages folder #{pkg_folder}..."
+      FileUtils.mkdir_p(pkg_folder)
+      system("rm -rf #{pkg_folder}/*") or raise "failed"
     end
   end
+
+  task :clean_building_artifacts do
+    PROJECTS.each do |project|
+      pkg_folder = "#{project}/pkg"
+      puts "Deleting building artifacts from #{pkg_folder}..."
+      system("rm -rf #{pkg_folder}/*.tgz") or raise "failed" # TGZ
+      system("rm -rf #{pkg_folder}/*.zip") or raise "failed" # ZIP
+      system("rm -rf #{pkg_folder}/*/") or raise "failed"    # Folder
+    end
+  end
+
+  task :zip_gems do
+    puts "Zipping archive for manual installation..."
+    archive_name = "railslts.tar.gz"
+    system("cd dist && rm -f #{archive_name} && tar -czvhf #{archive_name} railslts/ && cd ..") or raise "failed"
+  end
+
+  desc 'Builds *.gem packages for static distribution without Git'
+  task :build_gems => [:clean_gems, :package, :clean_building_artifacts, :zip_gems] do
+    puts "Done."
+  end
+
+  desc 'Updates the LICENSE file in individual sub-projects'
+  task :update_license do
+    require 'date'
+    last_change = Date.parse(`git log -1 --format=%cd`)
+    PROJECTS.each do |project|
+      license_path = "#{project}/LICENSE"
+      puts "Updating license #{license_path}..."
+      File.exists?(license_path) or raise "Could not find license: #{license_path}"
+      license = File.read(license_path)
+      license.sub!(/ before(.*?)\./ , " before #{last_change.strftime("%B %d, %Y")}.") or raise "Couldn't find timestamp."
+      File.open(license_path, "w") { |w| w.write(license) }
+    end
+  end
+
+  namespace :release do
+
+    task :ensure_ready do
+      jobs = [
+        'Did you release a new version of https://github.com/makandra/railslts-version ?',
+        'Did you bump the required "railslts-version" dependency in railties.gemspec?',
+        'Did you update the LICENSE files using `rake railslts:update_license`?',
+        'Did you build static gems using `rake railslts:build_gems`?',
+        'Did you commit and push your changes, as well as the changes by the Rake tasks mentioned above?',
+      ]
+
+      puts
+
+      jobs.each do |job|
+        print "#{job} [y/n] "
+        answer = STDIN.gets
+        puts
+        unless answer.strip == 'y'
+          $stderr.puts "Aborting. Nothing was released."
+          puts
+          exit
+        end
+      end
+    end
+
+
+    desc "Publish new Rails LTS customer release on gems.makandra.de/railslts"
+    task :customer => :ensure_ready do
+      for hostname in %w[c23 c42]
+        fqdn = "#{hostname}.gems.makandra.de"
+        puts "\033[1mUpdating #{fqdn}...\033[0m"
+        command = '/opt/update_railslts.sh'
+        system "ssh deploy-gems_p@#{fqdn} '#{command}'"
+        puts "done."
+      end
+
+      puts "Deployment done."
+      puts "Check https://gem.makandra.de/railtslts"
+    end
+
+    desc "Publish new Rails LTS community release on github.com/makandra/rails"
+    task :community => :ensure_ready do
+      existing_remotes = `git remote`
+      unless existing_remotes.include?('community')
+        system('git remote add community git@github.com:makandra/rails.git') or raise "Couldn't add remote'"
+      end
+      system('git fetch community && git push community 3-0-lts') or raise 'Error while publishing'
+      puts "Deployment done."
+      puts "Check https://github.com/makandra/rails/tree/3-0-lts"
+    end
+
+  end
+
 end
