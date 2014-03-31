@@ -22,7 +22,7 @@ gem "memcache-client", ">= 1.8.5"
 platforms :mri_18 do
   gem "system_timer"
   gem "ruby-debug", ">= 0.10.3" unless ENV['TRAVIS']
-  gem 'ruby-prof'
+  gem 'ruby-prof', "~> 0.13.1"
 end
 
 platforms :mri_19 do
@@ -33,7 +33,7 @@ end
 platforms :ruby do
   gem 'json'
   gem 'yajl-ruby'
-  gem "nokogiri", ">= 1.4.4"
+  gem "nokogiri", "~> 1.5.1"
 
   # AR
   gem "sqlite3", "~> 1.3.3"
