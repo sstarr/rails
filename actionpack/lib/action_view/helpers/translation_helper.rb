@@ -50,10 +50,10 @@ module ActionView
           reserved_keys = if I18n.const_defined?(:RESERVED_KEYS)
             I18n::RESERVED_KEYS
           else
-            I18n::Backend::Base::RESERVED_KEYS | [:raise, :cascade]
+            I18n::Backend::Base::RESERVED_KEYS
           end
           options.except(*reserved_keys).each do |name, value|
-            unless name == :count && value.is_a?(Numeric)
+            unless (name == :count && value.is_a?(Numeric)) || !value
               html_safe_options[name] = ERB::Util.html_escape(value.to_s)
             end
           end
