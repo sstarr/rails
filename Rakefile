@@ -53,7 +53,7 @@ namespace :railslts do
     system('cd activeresource && rake test') or raise 'failed'
 
     puts '', "\033[44m#{'railties'}\033[0m", ''
-    system('cd railties && rake test') or raise 'failed'
+    system('TMP_PATH=/tmp/lts-test-app cd railties && rake test') or raise 'failed'
 
   end
 

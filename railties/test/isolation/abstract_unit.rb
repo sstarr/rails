@@ -24,7 +24,7 @@ module TestHelpers
   module Paths
     module_function
 
-    TMP_PATH = File.expand_path(File.join(File.dirname(__FILE__), *%w[.. .. tmp]))
+    TMP_PATH = ENV['TMP_PATH'] || File.expand_path(File.join(File.dirname(__FILE__), *%w[.. .. tmp]))
 
     def tmp_path(*args)
       File.join(TMP_PATH, *args)
