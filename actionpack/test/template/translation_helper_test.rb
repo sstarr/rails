@@ -29,8 +29,8 @@ class TranslationHelperTest < ActiveSupport::TestCase
     @view = ::ActionView::Base.new(ActionController::Base.view_paths, {})
   end
 
-  def test_delegates_to_i18n_setting_the_rescue_format_option_to_html
-    I18n.expects(:translate).with(:foo, :locale => 'en', :rescue_format => :html).returns("")
+  def test_delegates_to_i18n_setting_raise_to_true
+    I18n.expects(:translate).with(:foo, :locale => 'en', :raise => true).returns("")
     translate :foo, :locale => 'en'
   end
 
@@ -44,6 +44,12 @@ class TranslationHelperTest < ActiveSupport::TestCase
     expected = '<span class="translation_missing" title="translation missing: en.translations.missing">Missing</span>'
     assert_equal expected, translate(:"translations.missing")
     assert_equal true, translate(:"translations.missing").html_safe?
+  end
+
+  def test_escapes_missing_translation_key_in_message
+    expected = '<span class="translation_missing" title="translation missing: en.translations.&lt;missing&gt;">&lt;Missing&gt;</span>'
+    assert_equal expected, translate(:"translations.<missing>")
+    assert_equal true, translate(:"translations.<missing>").html_safe?
   end
 
   def test_returns_missing_translation_message_using_nil_as_rescue_format
