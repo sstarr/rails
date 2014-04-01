@@ -10,6 +10,8 @@ require 'rails/application'
 require 'rails/version'
 require 'rails/deprecation'
 
+require 'rails/rails_lts/railtie'
+
 require 'active_support/railtie'
 require 'action_dispatch/railtie'
 
