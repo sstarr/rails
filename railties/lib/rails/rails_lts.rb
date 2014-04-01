@@ -8,6 +8,7 @@ module Rails
 
       def finalize
         finalize_param_parsers
+        finalize_json_html_entity_escaping
       end
 
 
@@ -22,6 +23,12 @@ module Rails
         end
       end
 
+      def finalize_json_html_entity_escaping
+        if configuration.escape_html_entities_in_json
+          ActiveSupport::JSON::Encoding.escape_html_entities_in_json = true
+        end
+      end
+
     end
 
 
@@ -29,6 +36,8 @@ module Rails
 
       attr_accessor :disable_json_parsing
       attr_accessor :disable_xml_parsing
+
+      attr_accessor :escape_html_entities_in_json
 
       def initialize(options)
         if options.blank?
@@ -52,9 +61,11 @@ module Rails
         when :hardened
           self.disable_json_parsing = true
           self.disable_xml_parsing = true
+          self.escape_html_entities_in_json = true
         when :compatible
           self.disable_json_parsing = false
           self.disable_xml_parsing = false
+          self.escape_html_entities_in_json = false
         end
       end
 
