@@ -113,10 +113,10 @@ connections:
 
   sqlite3:
     arunit:
-      database: <%= FIXTURES_ROOT %>/fixture_database.sqlite3
+      database: <%= ENV['DB_PATH'] || FIXTURES_ROOT %>/fixture_database.sqlite3
       timeout:  5000
     arunit2:
-      database: <%= FIXTURES_ROOT %>/fixture_database_2.sqlite3
+      database: <%= ENV['DB_PATH'] || FIXTURES_ROOT %>/fixture_database_2.sqlite3
       timeout:  5000
 
   sqlite3_mem:

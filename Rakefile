@@ -43,8 +43,11 @@ namespace :railslts do
     puts '', "\033[44m#{'activerecord (mysql)'}\033[0m", ''
     system('cd activerecord && rake test_mysql') or raise 'failed'
 
+
+    db_path = '/tmp/lts-test-db'
+    FileUtils.mkdir_p(db_path)
     puts '', "\033[44m#{'activerecord (sqlite3)'}\033[0m", ''
-    system('cd activerecord && rake test_sqlite3') or raise 'failed'
+    system("cd activerecord && DB_PATH=#{db_path} rake test_sqlite3") or raise 'failed'
 
     puts '', "\033[44m#{'activerecord (postgres)'}\033[0m", ''
     system('cd activerecord && rake test_postgresql') or raise 'failed'
@@ -53,7 +56,7 @@ namespace :railslts do
     system('cd activeresource && rake test') or raise 'failed'
 
     puts '', "\033[44m#{'railties'}\033[0m", ''
-    system('TMP_PATH=/tmp/lts-test-app cd railties && rake test') or raise 'failed'
+    system('cd railties && TMP_PATH=/tmp/lts-test-app rake test') or raise 'failed'
 
   end
 
@@ -133,7 +136,7 @@ namespace :railslts do
         fqdn = "#{hostname}.gems.makandra.de"
         puts "\033[1mUpdating #{fqdn}...\033[0m"
         command = '/opt/update_railslts.sh'
-        system "ssh deploy-gems_p@#{fqdn} '#{command}'"
+        system "ssh deploy-gems_p@#{fqdn} '#{command}'" or fail
         puts "done."
       end
 
