@@ -112,33 +112,12 @@ class AppGeneratorTest < Rails::Generators::TestCase
     assert_file "things-43/config/application.rb", /^module Things43$/
   end
 
-  def test_application_name_is_detected_if_it_exists_and_app_folder_renamed
-    app_root       = File.join(destination_root, "myapp")
-    app_moved_root = File.join(destination_root, "myapp_moved")
-
-    run_generator [app_root]
-
-    Rails.application.config.root = app_moved_root
-    Rails.application.class.stubs(:name).returns("Myapp")
-    Rails.application.stubs(:is_a?).returns(Rails::Application)
-
-    FileUtils.mv(app_root, app_moved_root)
-
-    generator = Rails::Generators::AppGenerator.new ["rails"], { :with_dispatchers => true },
-                                                               :destination_root => app_moved_root, :shell => @shell
-    generator.send(:app_const)
-    silence(:stdout){ generator.send(:create_config_files) }
-    assert_file "myapp_moved/config/environment.rb", /Myapp::Application\.initialize!/
-    assert_file "myapp_moved/config/initializers/session_store.rb", /_myapp_session/
-  end
-  
   def test_rails_update_generates_correct_session_key
     app_root = File.join(destination_root, 'myapp')
     run_generator [app_root]
     
     Rails.application.config.root = app_root
     Rails.application.class.stubs(:name).returns("Myapp")
-    Rails.application.stubs(:is_a?).returns(Rails::Application)
 
     generator = Rails::Generators::AppGenerator.new ["rails"], { :with_dispatchers => true }, :destination_root => app_root, :shell => @shell
     generator.send(:app_const)
