@@ -20,21 +20,21 @@ module RailsLtsTests
     def test_no_config_defaults
       load_environment
 
-      assert !Rails::RailsLts.configuration.escape_html_entities_in_json
+      assert !RailsLts.configuration.escape_html_entities_in_json
     end
 
     def test_compatible_defaults
       add_to_config "config.rails_lts_options = { :default => :compatible }"
       load_environment
 
-      assert !Rails::RailsLts.configuration.escape_html_entities_in_json
+      assert !RailsLts.configuration.escape_html_entities_in_json
     end
 
     def test_hardened_defaults
       add_to_config "config.rails_lts_options = { :default => :hardened }"
       load_environment
 
-      assert Rails::RailsLts.configuration.escape_html_entities_in_json
+      assert RailsLts.configuration.escape_html_entities_in_json
     end
 
     def test_enable_html_entities_escaping
