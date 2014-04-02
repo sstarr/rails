@@ -1,5 +1,8 @@
 require 'rake'
 
+$:.unshift File.expand_path('..', __FILE__)
+require 'tasks/release'
+
 env = %(PKG_BUILD="#{ENV['PKG_BUILD']}") if ENV['PKG_BUILD']
 
 PROJECTS = %w(activesupport activemodel actionpack actionmailer activeresource activerecord railties)
@@ -8,10 +11,14 @@ Dir["#{File.dirname(__FILE__)}/*/lib/*/version.rb"].each do |version_path|
   require version_path
 end
 
+
 desc 'Run all tests by default'
 task :default => %w(test test:isolated)
 
-%w(test test:isolated package gem).each do |task_name|
+desc "Build gem files for all projects"
+task :build => "all:build"
+
+%w(test test:isolated).each do |task_name|
   desc "Run #{task_name} task for all projects"
   task task_name do
     errors = []
@@ -81,6 +88,11 @@ namespace :railslts do
     end
   end
 
+  task :move_gems do
+    puts "Moving gems to dist/railslts/pkg"
+    system("mv dist/*.gem dist/railslts/pkg/") or raise "failed"
+  end
+
   task :zip_gems do
     puts "Zipping archive for manual installation..."
     archive_name = "railslts.tar.gz"
@@ -88,7 +100,7 @@ namespace :railslts do
   end
 
   desc 'Builds *.gem packages for static distribution without Git'
-  task :build_gems => [:clean_gems, :package, :clean_building_artifacts, :zip_gems] do
+  task :build_gems => [:clean_gems, :build, :clean_building_artifacts, :move_gems, :zip_gems] do
     puts "Done."
   end
 

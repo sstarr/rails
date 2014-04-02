@@ -1,5 +1,6 @@
-pkg
 .bundle
+dist/*.gem
+dist/railslts/pkg
 Gemfile.lock
 debug.log
 doc/rdoc
