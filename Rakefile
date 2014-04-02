@@ -16,7 +16,9 @@ task :default => %w(test test:isolated)
   task task_name do
     errors = []
     PROJECTS.each do |project|
-      warn 'When running tests for Rails LTS, prefer running the "railslts:test" task.'
+      if task_name =~ /test/
+        warn 'When running tests for Rails LTS, prefer running the "railslts:test" task.'
+      end
       system(%(cd #{project} && #{$0} #{task_name})) || errors << project
     end
     fail("Errors in #{errors.join(', ')}") unless errors.empty?
