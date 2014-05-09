@@ -1,5 +1,6 @@
 require 'active_support/core_ext/array/wrap'
 require 'active_support/core_ext/object/blank'
+require 'rails_lts'
 
 module ActiveRecord
   module QueryMethods
@@ -223,9 +224,20 @@ module ActiveRecord
         [@klass.send(:sanitize_sql, other.empty? ? opts : ([opts] + other))]
       when Hash
         attributes = @klass.send(:expand_hash_conditions_for_aggregates, opts)
+        validate_unambiguous_table_names(attributes)
         PredicateBuilder.new(table.engine).build_from_hash(attributes, table)
       else
         [opts]
+      end
+    end
+
+    def validate_unambiguous_table_names(attributes)
+      if RailsLts.configuration && RailsLts.configuration.strict_unambiguous_table_names
+        attributes.each do |key, value|
+          if value.is_a?(Hash) && columns_hash.has_key?(key.to_s)
+            raise StatementInvalid.new("`#{key}` is a column name and used as a table name")
+          end
+        end
       end
     end
 

@@ -37,6 +37,8 @@ module RailsLts
 
     attr_accessor :escape_html_entities_in_json
 
+    attr_accessor :strict_unambiguous_table_names
+
     def initialize(options)
       if options.blank?
         $stderr.puts(%{Please configure your rails_lts_options using config.rails_lts_options inside Rails::Initializer.run. Defaulting to "rails_lts_options = { :default => :compatible }"})
@@ -60,10 +62,12 @@ module RailsLts
         self.disable_json_parsing = true
         self.disable_xml_parsing = true
         self.escape_html_entities_in_json = true
+        self.strict_unambiguous_table_names = true
       when :compatible
         self.disable_json_parsing = false
         self.disable_xml_parsing = false
         self.escape_html_entities_in_json = false
+        self.strict_unambiguous_table_names = false
       end
     end
 
