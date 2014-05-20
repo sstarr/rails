@@ -90,6 +90,7 @@ namespace :railslts do
 
   task :move_gems do
     puts "Moving gems to dist/railslts/pkg"
+    system("mkdir -p dist/railslts/pkg")
     system("mv dist/*.gem dist/railslts/pkg/") or raise "failed"
   end
 
